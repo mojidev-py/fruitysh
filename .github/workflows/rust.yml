@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose --release
+      run: cargo install --path .
     - name: move exe to source dir
       run: mv target/release/fruity.exe .
     - name: Run
