@@ -1,8 +1,8 @@
-use std::{env, fs::OpenOptions, io::{self, Error, Read, Write}, process::exit};
+use std::{env, fs::{self, OpenOptions}, io::{self, Error, Read, Write}, os::windows::{fs::MetadataExt, process}, process::exit};
 use supports_color;
 use colored::Colorize;
 use whoami;
-
+use std::process::Command;
 
 
 
@@ -24,7 +24,7 @@ pub(crate) fn running_loop() -> Result<(),Error> {
     input.clear();
     while input != "quit" && input != " " {
         
-        print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap(),">>".green());
+        print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap().bold(),">>".green());
         io::stdout().flush().unwrap();
         match io::stdin().read_line(&mut input) {
             Ok(_) => route_to_cmd(&input)?,
@@ -51,9 +51,18 @@ fn route_to_cmd(cmd: &str) -> Result<(), Error> {
         cd(arguments[1])?;
     } else if cmd.contains("write") && !cmd.contains("|") {
         let arguments: Vec<&str> = cmd.split(" ").collect();
-        tee(arguments[1],arguments[2])?;
-    } else if cmd.contains("quit") {
+        if arguments.get(2).is_some() && arguments.get(1).is_some() {
+            tee(arguments[1],arguments[2])?;
+        } else if arguments.get(1).is_none() {
+            println!("You did not specify a path to write to.")
+        } else if arguments.get(2).is_none() {
+            println!("You did not specify text to write to PATH.")
+        }
+    } else if cmd.starts_with("quit") {
         exit(0);
+    } else if cmd.starts_with("explore") && !cmd.contains("|") {
+        let arguments: Vec<&str> = cmd.split(" ").collect();
+        ls(arguments[1])?;
     } else {
         println!("{}: Command {} was not found.","[fruitysh]".green(),cmd.bold())
     }
@@ -104,5 +113,31 @@ fn tee(path: &str,text: &str) -> Result<(),Error> {
         pathfl.write(buf)?;
     }
     Ok(())
+}
 
+fn ls(path: &str) -> Result<(),Error> {
+    println!("| {0: <10} | {1: <10} | {2: <10} |","Name".bold(),"Size".bold(),"Read-Only?".bold());
+    let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
+    cur_working_dir.push_str("\\");
+    cur_working_dir.push_str(path.trim_end());
+    for entry in fs::read_dir(cur_working_dir)? {
+        let entry = entry?;
+        let mut name = entry.file_name().into_string().unwrap().to_owned();
+        if name.len() > 9 {
+            name = name[0..10].to_string();
+        }
+        println!("| {0: <10} | {1: <10} | {2: <10} |",name,entry.metadata()?.file_size(),entry.metadata()?.permissions().readonly())
+    }
+    Ok(())
+}
+
+fn make_main_shell() -> Result<(),Error> {
+    if env::consts::OS != "linux" {
+        println!("{} Your host operating system is: {}, while this command is meant for Linux users.","[fruitysh@main_shell]:".green(),env::consts::OS.bold())
+    } else {
+        
+        let perform_path_write = Command::new("mv");
+        let chsh = Command::new("chsh").spawn()?;
+    }
+    Ok(())
 }
