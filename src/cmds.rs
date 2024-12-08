@@ -81,9 +81,10 @@ fn cd(path: &str) -> Result<(), Error> {
     let mut new_dir_path = env::current_dir()?.to_str().unwrap().to_owned();
     if path.trim_end() == "help" {
         println!("{} \n switchdir [RELPATH] \n Help page for view: \n switchdir is a command that allows you to navigate around your cwd, using relative paths.","[fruitysh@switchdir]:".green())
-    }
+    } else {
     new_dir_path.push_str(path.trim_end());
     env::set_current_dir(new_dir_path)?;
+    }
     Ok(())
 }
 
