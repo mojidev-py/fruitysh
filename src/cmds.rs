@@ -17,7 +17,7 @@ pub(crate) fn running_loop() -> Result<(),Error> {
     print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap(),">>".green());
     io::stdout().flush().unwrap();
     match io::stdin().read_line(&mut input) {
-        Ok(_) => route_to_cmd(&input).expect("yuh"),
+        Ok(_) => route_to_cmd(&input)?,
         Err(err) => panic!("fruitysh had to exit since you did not provide valid input. :{err:#?}") 
     // allowing for shell to open without closing, repetitive, but might work
     }
@@ -27,7 +27,7 @@ pub(crate) fn running_loop() -> Result<(),Error> {
         print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap(),">>".green());
         io::stdout().flush().unwrap();
         match io::stdin().read_line(&mut input) {
-            Ok(_) => route_to_cmd(&input).expect("Message for Quit:"),
+            Ok(_) => route_to_cmd(&input)?,
             Err(err) => panic!("fruitysh had to exit since you did not provide valid input. :{err:#?}") 
         }
         input.clear();
@@ -80,21 +80,29 @@ fn cat(path: &str) -> Result<(),Error> {
 fn cd(path: &str) -> Result<(), Error> {
     let mut new_dir_path = env::current_dir()?.to_str().unwrap().to_owned();
     if path.trim_end() == "help" {
-        println!("{} \n switchdir [RELPATH] \n Help page for view: \n switchdir is a command that allows you to navigate around your cwd, using relative paths.","[fruitysh@switchdir]:".green())
+        println!("{} \n switchdir [PATH] \n Help page for view: \n switchdir is a command that allows you to navigate around your cwd, using relative paths.","[fruitysh@switchdir]:".green())
+    } else if path.contains(&new_dir_path[0..1]) || path.starts_with("/") {
+        // first and second characters are always Drive letter names on windows 
+        env::set_current_dir(path.trim_end())?;
     } else {
-    new_dir_path.push_str("\\");
-    new_dir_path.push_str(path.trim_end());
-    env::set_current_dir(new_dir_path)?;
+        new_dir_path.push_str("\\");
+        new_dir_path.push_str(path.trim_end());
+        env::set_current_dir(new_dir_path)?;
     }
     Ok(())
 }
 
 fn tee(path: &str,text: &str) -> Result<(),Error> {
-    if path.trim_end() == "help" {
+    if path.trim_end() == "help" && text.trim_end() == "help" {
         println!("{} \n write [PATH] [TEXT] \n Help page for write: \n write is a command that allows you to write TEXT into a file at PATH.","[fruitysh@write]:".green())
+    } else {
+        let mut curr_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
+        curr_working_dir.push_str("\\");
+        curr_working_dir.push_str(path);
+        let mut pathfl= OpenOptions::new().read(true).write(true).append(true).open(curr_working_dir)?;
+        let buf = text.as_bytes();
+        pathfl.write(buf)?;
     }
-    let mut pathfl= OpenOptions::new().read(true).write(true).append(true).open(path)?;
-    let buf = text.as_bytes();
-    pathfl.write(buf)?;
     Ok(())
+
 }
