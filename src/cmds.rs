@@ -14,6 +14,12 @@ pub(crate) fn running_loop() -> Result<(),Error> {
         println!("Your current terminal does not support color. Visibility and readability may be impacted.")
     }
     let mut input = String::new();
+    print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap(),">>".green());
+    match io::stdin().read_line(&mut input) {
+        Ok(_) => route_to_cmd(&input).expect("yuh"),
+        Err(err) => panic!("fruitysh had to exit since you did not provide valid input. :{err:#?}") 
+    // allowing for shell to open without closing, repetitive, but might work
+    }
     while input != "quit" && input != "" {
         print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap(),">>".green());
         match io::stdin().read_line(&mut input) {

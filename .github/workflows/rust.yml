@@ -22,3 +22,7 @@ jobs:
       run: mv target/release/fruity.exe .
     - name: Run
       run: fruity
+    - name: test Help output
+      run: view help
+    - name: exit safely
+      run: quit
