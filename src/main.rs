@@ -1,5 +1,10 @@
+use std::io;
+
 mod cmds;
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> Result<(), io::Error> {
+    cmds::running_loop()?;
+    Ok(())
 }
+
+
