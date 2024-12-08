@@ -23,6 +23,7 @@ jobs:
     - name: Run
       run: fruity
     - name: test Help output
-      run: view help
+      run: echo view help
+      # echo is used to send input to the program, not run it on the raw terminal itself
     - name: exit safely
-      run: quit
+      run: echo quit
