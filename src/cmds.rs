@@ -1,9 +1,7 @@
-use std::{env, fs::{self, OpenOptions}, io::{self, Error, Read, Write}, os::windows::{fs::MetadataExt, process}, process::exit};
+use std::{env, fs::{self, OpenOptions}, io::{self,Error, ErrorKind, Read, Write}, os::windows::fs::MetadataExt, process::exit};
 use supports_color;
-use colored::Colorize;
+use colored::{ColoredString, Colorize};
 use whoami;
-use std::process::Command;
-
 
 
 
@@ -17,7 +15,7 @@ pub(crate) fn running_loop() -> Result<(),Error> {
     print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap(),">>".green());
     io::stdout().flush().unwrap();
     match io::stdin().read_line(&mut input) {
-        Ok(_) => route_to_cmd(&input)?,
+        Ok(_) => route_to_cmd(&input).unwrap_or_else(|err| {println!("There was an error while running {}: {:#?}",&input,err)}),
         Err(err) => panic!("fruitysh had to exit since you did not provide valid input. :{err:#?}") 
     // allowing for shell to open without closing, repetitive, but might work
     }
@@ -27,18 +25,24 @@ pub(crate) fn running_loop() -> Result<(),Error> {
         print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap().bold(),">>".green());
         io::stdout().flush().unwrap();
         match io::stdin().read_line(&mut input) {
-            Ok(_) => route_to_cmd(&input)?,
-            Err(err) => panic!("fruitysh had to exit since you did not provide valid input. :{err:#?}") 
+            Ok(_) => route_to_cmd(&input).unwrap_or_else(|err| {println!("{}: There was an error while running {}: {}","[fruitysh]".green(),&input.bold(),return_normal_error_msg(&err.kind()))}),
+            Err(err) => println!("fruitysh had to exit since you did not provide valid input. :{err:#?}") 
         }
         input.clear();
         
     }
     Ok(())
-
-
-        
-        
 }
+
+fn return_normal_error_msg(kind: &ErrorKind) -> ColoredString {
+    match kind {
+        ErrorKind::NotFound => return "Could not find directory.".bold(),
+        ErrorKind::PermissionDenied => return "Permission was denied.".bold(),
+        _ => return "Unspecified error.".bold()
+
+    }
+}
+
 
 
 fn route_to_cmd(cmd: &str) -> Result<(), Error> {
@@ -63,6 +67,8 @@ fn route_to_cmd(cmd: &str) -> Result<(), Error> {
     } else if cmd.starts_with("explore") && !cmd.contains("|") {
         let arguments: Vec<&str> = cmd.split(" ").collect();
         ls(arguments[1])?;
+    } else if cmd.starts_with("clear") {
+        print!("\x1B[2J")
     } else {
         println!("{}: Command {} was not found.","[fruitysh]".green(),cmd.bold())
     }
@@ -127,17 +133,6 @@ fn ls(path: &str) -> Result<(),Error> {
             name = name[0..10].to_string();
         }
         println!("| {0: <10} | {1: <10} | {2: <10} |",name,entry.metadata()?.file_size(),entry.metadata()?.permissions().readonly())
-    }
-    Ok(())
-}
-
-fn make_main_shell() -> Result<(),Error> {
-    if env::consts::OS != "linux" {
-        println!("{} Your host operating system is: {}, while this command is meant for Linux users.","[fruitysh@main_shell]:".green(),env::consts::OS.bold())
-    } else {
-        
-        let perform_path_write = Command::new("mv");
-        let chsh = Command::new("chsh").spawn()?;
     }
     Ok(())
 }
