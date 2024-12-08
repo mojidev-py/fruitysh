@@ -1,0 +1,9 @@
+[package]
+name = "fruity"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+colored = "2.1.0"
+supports-color = "3.0.2"
+whoami = "1.5.2"
