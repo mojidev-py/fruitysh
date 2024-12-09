@@ -2,8 +2,7 @@ use std::{env, fs::{self, OpenOptions}, io::{self,Error, ErrorKind, Read, Write}
 use supports_color;
 use colored::{ColoredString, Colorize};
 use whoami;
-
-
+use chrono::{self, DateTime, Local};
 
 
 pub(crate) fn running_loop() -> Result<(),Error> {
@@ -36,8 +35,9 @@ pub(crate) fn running_loop() -> Result<(),Error> {
 
 fn return_normal_error_msg(kind: &ErrorKind) -> ColoredString {
     match kind {
-        ErrorKind::NotFound => return "Could not find directory.".bold(),
+        ErrorKind::NotFound => return "Could not find directory/file.".bold(),
         ErrorKind::PermissionDenied => return "Permission was denied.".bold(),
+        ErrorKind::Unsupported => return "This command is not available on your current platform.".bold(),
         _ => return "Unspecified error.".bold()
 
     }
@@ -69,6 +69,12 @@ fn route_to_cmd(cmd: &str) -> Result<(), Error> {
         ls(arguments[1])?;
     } else if cmd.starts_with("clear") {
         print!("\x1B[2J")
+    } else if cmd.starts_with("rename") { 
+        let arguments: Vec<&str> = cmd.split(" ").collect();
+        rename(arguments[1], arguments[2])?;
+    } else if cmd.starts_with("rmf") {
+        let arguments: Vec<&str> = cmd.split(" ").collect();
+        rmf(arguments[1])?;
     } else {
         println!("{}: Command {} was not found.","[fruitysh]".green(),cmd.bold())
     }
@@ -86,8 +92,10 @@ fn cat(path: &str) -> Result<(),Error> {
     current_dir.push_str(path.trim_end());
     let mut pathfl = OpenOptions::new().read(true).open(current_dir)?;
     let metadata = pathfl.metadata()?.modified()?;
+    let into: DateTime<Local> = metadata.into();
+    let formatted = into.format("%r, %Z UTC").to_string();
     pathfl.read_to_string(&mut output)?;
-    print!("{} File modified at {:#?}. \n Contents: \n {}","[fruitysh@view]:".green(),metadata,&output);
+    print!("{} File modified at {}. \n Contents: \n {}","[fruitysh@view]:".green(),formatted,&output);
     }
     Ok(())
 }
@@ -134,5 +142,24 @@ fn ls(path: &str) -> Result<(),Error> {
         }
         println!("| {0: <10} | {1: <10} | {2: <10} |",name,entry.metadata()?.file_size(),entry.metadata()?.permissions().readonly())
     }
+    Ok(())
+}
+
+fn rename(file: &str,name: &str) -> Result<(),Error> {
+    let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
+    cur_working_dir.push_str("\\");
+    cur_working_dir.push_str(file.trim_end());
+    let mut new_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
+    new_working_dir.push_str("\\");
+    new_working_dir.push_str(name.trim_end());
+    fs::rename(cur_working_dir,new_working_dir)?;
+    Ok(())
+}
+
+fn rmf(file: &str) -> Result<(),Error> {
+    let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
+    cur_working_dir.push_str("\\");
+    cur_working_dir.push_str(file.trim_end());
+    fs::remove_file(cur_working_dir)?;
     Ok(())
 }
