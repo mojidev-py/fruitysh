@@ -9,5 +9,5 @@ To use this shell anywhere, move it to something like Users on windows or home o
 ## How Do I make this my default shell?
 
 ### Linux
-Add this executable's path (`$HOME/.cargo/bin/fruity.exe` is most likely) to the shells file, over at `etc/shells`
+Add this executable's path (`$HOME/.cargo/bin/fruity.exe` is most likely) to the shells file, over at `etc/shells`. \n
 Use `chsh -s fruity`, and your default shell will be changed to fruitysh.
