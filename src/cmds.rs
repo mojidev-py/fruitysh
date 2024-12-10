@@ -1,44 +1,48 @@
-use std::{env, fs::{self, OpenOptions}, io::{self,Error, ErrorKind, Read, Write}, os::windows::fs::MetadataExt, process::exit};
-use supports_color;
+use std::{env, fs::{self, read_dir, OpenOptions}, io::{self,Error, ErrorKind, Read, Write}, os::windows::fs::MetadataExt, process::exit};
 use colored::{ColoredString, Colorize};
-use whoami;
 use chrono::{self, DateTime, Local};
+
+use crate::completions::completions;
+use crate::configs::config;
 
 
 pub(crate) fn running_loop() -> Result<(),Error> {
     //! Internal function that runs the shell until an error occurs or a panic
-    if !supports_color::on(supports_color::Stream::Stdout).is_some() {
-        println!("Your current terminal does not support color. Visibility and readability may be impacted.")
-    }
-    let mut input = String::new();
-    print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap(),">>".green());
-    io::stdout().flush().unwrap();
-    match io::stdin().read_line(&mut input) {
-        Ok(_) => route_to_cmd(&input).unwrap_or_else(|err| {println!("There was an error while running {}: {:#?}",&input,err)}),
-        Err(err) => panic!("fruitysh had to exit since you did not provide valid input. :{err:#?}") 
-    // allowing for shell to open without closing, repetitive, but might work
-    }
-    input.clear();
-    while input != "quit" && input != " " {
-        
-        print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap().bold(),">>".green());
+    if supports_color::on(supports_color::Stream::Stdout).is_some() {
+        let mut input = String::new();
+        print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap(),">>".green());
         io::stdout().flush().unwrap();
         match io::stdin().read_line(&mut input) {
-            Ok(_) => route_to_cmd(&input).unwrap_or_else(|err| {println!("{}: There was an error while running {}: {}","[fruitysh]".green(),&input.bold(),return_normal_error_msg(&err.kind()))}),
-            Err(err) => println!("fruitysh had to exit since you did not provide valid input. :{err:#?}") 
+            Ok(_) => route_to_cmd(&input).unwrap_or_else(|err| {println!("There was an error while running {}: {:#?}",&input,err)}),
+            Err(err) => panic!("fruitysh had to exit since you did not provide valid input. :{err:#?}") 
+        // allowing for shell to open without closing, repetitive, but might work
         }
         input.clear();
-        
+        while input != "quit" && input != " " {
+            
+            print!("{}{} ~{}~ {}  ","fruitysh@".red(),whoami::username().red(),env::current_dir()?.to_str().unwrap().bold(),">>".green());
+            io::stdout().flush().unwrap();
+            match io::stdin().read_line(&mut input) {
+                Ok(_) => route_to_cmd(&input).unwrap_or_else(|err| {println!("{}: There was an error while running {}: {}","[fruitysh]".green(),&input.bold(),return_normal_error_msg(&err.kind()))}),
+                Err(err) => println!("fruitysh had to exit since you did not provide valid input. :{err:#?}") 
+            }
+            input.clear();
+            
+        }    
+    
+    } else {
+        println!("Your terminal needs to support color to have more visibility.")
     }
+
     Ok(())
 }
 
 fn return_normal_error_msg(kind: &ErrorKind) -> ColoredString {
     match kind {
-        ErrorKind::NotFound => return "Could not find directory/file.".bold(),
-        ErrorKind::PermissionDenied => return "Permission was denied.".bold(),
-        ErrorKind::Unsupported => return "This command is not available on your current platform.".bold(),
-        _ => return "Unspecified error.".bold()
+        ErrorKind::NotFound => "Could not find directory/file.".bold(),
+        ErrorKind::PermissionDenied => "Permission was denied.".bold(),
+        ErrorKind::Unsupported => "This command is not available on your current platform.".bold(),
+        _ => "Unspecified error.".bold()
 
     }
 }
@@ -47,6 +51,21 @@ fn return_normal_error_msg(kind: &ErrorKind) -> ColoredString {
 
 fn route_to_cmd(cmd: &str) -> Result<(), Error> {
     //! Internal function that routes plain strings to functions that are implemented for the cmd, else returns `Not found`
+    let autocompletion = option_env!("AUTOCOMPLETE").is_some();
+    let mut path = "C:\\Users\\".to_string();
+    path.push_str(&whoami::username());
+    path.push_str("\\.autocompletes");    
+    if autocompletion {
+        for direntry in read_dir(&path)? {
+            let entry = direntry?;
+            if entry.file_name() != ".autocompletes" {
+                completions::create_autocomp_file()?;
+                break;
+            }
+        let _ = completions::show_autocomplete(&OpenOptions::new().read(true).open(path.clone())?, cmd);
+            
+        }
+    }
     if cmd.contains("view") && !cmd.contains("|") {
         let arguments: Vec<&str> = cmd.split(" ").collect();
         cat(arguments[1])?;
@@ -91,7 +110,7 @@ fn cat(path: &str) -> Result<(),Error> {
     } else { 
     let mut output = String::new();
     let mut current_dir = env::current_dir()?.to_str().unwrap().to_owned();
-    current_dir.push_str("\\");
+    current_dir.push('\\');
     current_dir.push_str(path.trim_end());
     let mut pathfl = OpenOptions::new().read(true).open(current_dir)?;
     let metadata = pathfl.metadata()?.modified()?;
@@ -111,7 +130,7 @@ fn cd(path: &str) -> Result<(), Error> {
         // first and second characters are always Drive letter names on windows 
         env::set_current_dir(path.trim_end())?;
     } else {
-        new_dir_path.push_str("\\");
+        new_dir_path.push('\\');
         new_dir_path.push_str(path.trim_end());
         env::set_current_dir(new_dir_path)?;
     }
@@ -123,11 +142,11 @@ fn tee(path: &str,text: &str) -> Result<(),Error> {
         println!("{} \n write [PATH] [TEXT] \n Help page for write: \n write is a command that allows you to write TEXT into a file at PATH.","[fruitysh@write]:".green())
     } else {
         let mut curr_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
-        curr_working_dir.push_str("\\");
+        curr_working_dir.push('\\');
         curr_working_dir.push_str(path);
-        let mut pathfl= OpenOptions::new().read(true).write(true).append(true).open(curr_working_dir)?;
+        let mut pathfl= OpenOptions::new().read(true).append(true).open(curr_working_dir)?;
         let buf = text.as_bytes();
-        pathfl.write(buf)?;
+        pathfl.write_all(buf)?;
     }
     Ok(())
 }
@@ -138,7 +157,7 @@ fn ls(path: &str) -> Result<(),Error> {
     } else {    
         println!("| {0: <10} | {1: <10} | {2: <10} |","Name".bold(),"Size".bold(),"Read-Only?".bold());
         let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
-        cur_working_dir.push_str("\\");
+        cur_working_dir.push('\\');
         cur_working_dir.push_str(path.trim_end());
         for entry in fs::read_dir(cur_working_dir)? {
             let entry = entry?;
@@ -157,10 +176,10 @@ fn rename(file: &str,name: &str) -> Result<(),Error> {
         println!("{} \n rename [NAME] [NEW_NAME] \n Help page for rename: \n rename is a command that allows you to rename a file from its current name, to its new name.","[fruitysh@rename]:".green())
     } else {
         let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
-        cur_working_dir.push_str("\\");
+        cur_working_dir.push('\\');
         cur_working_dir.push_str(file.trim_end());
         let mut new_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
-        new_working_dir.push_str("\\");
+        new_working_dir.push('\\');
         new_working_dir.push_str(name.trim_end());
         fs::rename(cur_working_dir,new_working_dir)?;
     }
@@ -172,7 +191,7 @@ fn rmf(file: &str) -> Result<(),Error> {
         println!("{} \n rmf [FILE] \n Help page for rmf: \n rmf is a command that allows you to delete a file (removing dirs needs another command (rmd)), if you have the permissions.","[fruitysh@rmf]:".green())
     } else {    
         let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
-        cur_working_dir.push_str("\\");
+        cur_working_dir.push('\\');
         cur_working_dir.push_str(file.trim_end());
         fs::remove_file(cur_working_dir)?;
     }
@@ -184,7 +203,7 @@ fn rmd(dir: &str) -> Result<(),Error> {
         println!("{} \n rmd [DIR] \n Help page for rmd \n rmd is a command that allows you to delete a directory, if you have the permissions.","[fruitysh@rmd]:".green())
     } else {
         let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
-        cur_working_dir.push_str("\\");
+        cur_working_dir.push('\\');
         cur_working_dir.push_str(dir.trim_end());
         fs::remove_dir(cur_working_dir)?;        
     }

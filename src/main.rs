@@ -1,8 +1,8 @@
 use std::{io, time::SystemTime};
 use colored::{self, Colorize};
-use whoami;
 mod cmds;
 mod configs;
+mod completions;
 use chrono::{self,DateTime, Local};
 
 static VERSION: &str = env!("CARGO_PKG_VERSION");
