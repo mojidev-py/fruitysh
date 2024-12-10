@@ -12,3 +12,12 @@ To use this shell anywhere, move it to something like Users on windows or home o
 Add this executable's path (`$HOME/.cargo/bin/fruity.exe` is most likely) to the shells file, over at `etc/shells`.
 
 Use `chsh -s fruity`, and your default shell will be changed to fruitysh.
+
+## Possible .fruityconf fields
+The fruity shell allows you to customize a minimal amount of fields, and the possible ones are:
+```
+"AUTOCOMPLETIONS" = Whether the shell provides autocompletions for commonly used commands.,
+"EXPERIMENTAL" = Whether to enable experimental features for the shell (Either a bool, or a string indicating what feature you want to enable),
+"PROMPT_NAME_COLOR" = The hex representation of the color you want to change the fruitysh@(username) part of the prompt to,
+"PROMPT_INPUT_COLOR" = The hex representation of the color you want to change the ">>" part of the prompt to.
+```
