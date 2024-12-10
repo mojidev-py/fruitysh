@@ -75,6 +75,9 @@ fn route_to_cmd(cmd: &str) -> Result<(), Error> {
     } else if cmd.starts_with("rmf") {
         let arguments: Vec<&str> = cmd.split(" ").collect();
         rmf(arguments[1])?;
+    } else if cmd.starts_with("rmd")  {
+        let arguments: Vec<&str> = cmd.split(" ").collect();
+        rmd(arguments[1])?;        
     } else {
         println!("{}: Command {} was not found.","[fruitysh]".green(),cmd.bold())
     }
@@ -172,6 +175,18 @@ fn rmf(file: &str) -> Result<(),Error> {
         cur_working_dir.push_str("\\");
         cur_working_dir.push_str(file.trim_end());
         fs::remove_file(cur_working_dir)?;
+    }
+    Ok(())
+}
+
+fn rmd(dir: &str) -> Result<(),Error> {
+    if dir.trim_end() == "help" {
+        println!("{} \n rmd [DIR] \n Help page for rmd \n rmd is a command that allows you to delete a directory, if you have the permissions.","[fruitysh@rmd]:".green())
+    } else {
+        let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
+        cur_working_dir.push_str("\\");
+        cur_working_dir.push_str(dir.trim_end());
+        fs::remove_dir(cur_working_dir)?;        
     }
     Ok(())
 }
