@@ -130,36 +130,48 @@ fn tee(path: &str,text: &str) -> Result<(),Error> {
 }
 
 fn ls(path: &str) -> Result<(),Error> {
-    println!("| {0: <10} | {1: <10} | {2: <10} |","Name".bold(),"Size".bold(),"Read-Only?".bold());
-    let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
-    cur_working_dir.push_str("\\");
-    cur_working_dir.push_str(path.trim_end());
-    for entry in fs::read_dir(cur_working_dir)? {
-        let entry = entry?;
-        let mut name = entry.file_name().into_string().unwrap().to_owned();
-        if name.len() > 9 {
-            name = name[0..10].to_string();
-        }
+    if path.trim_end() == "help" {
+        println!("{} \n explore [PATH] \n Help page for explore: \n explore allows you to view into the contents of a directory. ","[fruitysh@explore]:".green())        
+    } else {    
+        println!("| {0: <10} | {1: <10} | {2: <10} |","Name".bold(),"Size".bold(),"Read-Only?".bold());
+        let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
+        cur_working_dir.push_str("\\");
+        cur_working_dir.push_str(path.trim_end());
+        for entry in fs::read_dir(cur_working_dir)? {
+            let entry = entry?;
+            let mut name = entry.file_name().into_string().unwrap().to_owned();
+            if name.len() > 9 {
+                name = name[0..10].to_string();
+            }
         println!("| {0: <10} | {1: <10} | {2: <10} |",name,entry.metadata()?.file_size(),entry.metadata()?.permissions().readonly())
     }
+}
     Ok(())
 }
 
 fn rename(file: &str,name: &str) -> Result<(),Error> {
-    let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
-    cur_working_dir.push_str("\\");
-    cur_working_dir.push_str(file.trim_end());
-    let mut new_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
-    new_working_dir.push_str("\\");
-    new_working_dir.push_str(name.trim_end());
-    fs::rename(cur_working_dir,new_working_dir)?;
+    if file.trim_end() == "help" && name.trim_end() == "help" {
+        println!("{} \n rename [NAME] [NEW_NAME] \n Help page for rename: \n rename is a command that allows you to rename a file from its current name, to its new name.","[fruitysh@rename]:".green())
+    } else {
+        let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
+        cur_working_dir.push_str("\\");
+        cur_working_dir.push_str(file.trim_end());
+        let mut new_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
+        new_working_dir.push_str("\\");
+        new_working_dir.push_str(name.trim_end());
+        fs::rename(cur_working_dir,new_working_dir)?;
+    }
     Ok(())
 }
 
 fn rmf(file: &str) -> Result<(),Error> {
-    let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
-    cur_working_dir.push_str("\\");
-    cur_working_dir.push_str(file.trim_end());
-    fs::remove_file(cur_working_dir)?;
+    if file.trim_end() == "help" {
+        println!("{} \n rmf [FILE] \n Help page for rmf: \n rmf is a command that allows you to delete a file (removing dirs needs another command (rmd)), if you have the permissions.","[fruitysh@rmf]:".green())
+    } else {    
+        let mut cur_working_dir = env::current_dir()?.to_str().unwrap().to_owned();
+        cur_working_dir.push_str("\\");
+        cur_working_dir.push_str(file.trim_end());
+        fs::remove_file(cur_working_dir)?;
+    }
     Ok(())
 }
