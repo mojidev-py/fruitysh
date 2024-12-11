@@ -2,8 +2,7 @@ use std::{env, fs::{self, read_dir, OpenOptions}, io::{self,Error, ErrorKind, Re
 use colored::{ColoredString, Colorize};
 use chrono::{self, DateTime, Local};
 
-use crate::completions::completions;
-use crate::configs::config;
+use crate::completions::{self};
 
 
 pub(crate) fn running_loop() -> Result<(),Error> {
@@ -53,16 +52,20 @@ fn route_to_cmd(cmd: &str) -> Result<(), Error> {
     //! Internal function that routes plain strings to functions that are implemented for the cmd, else returns `Not found`
     let autocompletion = option_env!("AUTOCOMPLETE").is_some();
     let mut path = "C:\\Users\\".to_string();
-    path.push_str(&whoami::username());
-    path.push_str("\\.autocompletes");    
+    path.push_str(&whoami::username());   
     if autocompletion {
-        for direntry in read_dir(&path)? {
+        for direntry in read_dir(&path)?{
             let entry = direntry?;
             if entry.file_name() != ".autocompletes" {
-                completions::create_autocomp_file()?;
-                break;
+                continue;
             }
-        let _ = completions::show_autocomplete(&OpenOptions::new().read(true).open(path.clone())?, cmd);
+            let file_exists = true;
+            dbg!(file_exists);
+        if file_exists {
+            completions::autocompletions::create_autocomp_file()?;
+        }
+        
+        let _ = completions::autocompletions::show_autocomplete(&OpenOptions::new().read(true).open(path.clone())?, cmd);
             
         }
     }

@@ -1,7 +1,7 @@
 
 
 
-pub mod completions {
+pub mod autocompletions {
     use std::{error::Error, fs::{File, OpenOptions}, io::{self, Read}, iter::zip};
     use colored::{self, Colorize, CustomColor};
 
